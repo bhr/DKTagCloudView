@@ -44,19 +44,21 @@
 }
 
 - (UIColor *)randomColor {
-    return self.randomColors[rand() % self.randomColors.count];
+    return self.randomColors[arc4random() % self.randomColors.count];
 }
 
-- (UIFont *)randomFont {
-    return [UIFont systemFontOfSize:rand() % self.maxFontSize + self.minFontSize];
+- (UIFont *)randomFont:(NSUInteger)numberOfTries {
+	NSUInteger maxFontSize = (MAX(0, self.maxFontSize - numberOfTries * 2));
+	NSUInteger randomSize = maxFontSize == 0 ? 0 : arc4random() % maxFontSize;
+    return [UIFont systemFontOfSize:randomSize + self.minFontSize];
 }
 
 - (CGRect)randomFrameForLabel:(UILabel *)label {
     [label sizeToFit];
-    CGFloat maxWidth = self.bounds.size.width - label.bounds.size.width;
-    CGFloat maxHeight = self.bounds.size.height - label.bounds.size.height;
+    CGFloat maxWidth = MAX(1, self.bounds.size.width - label.bounds.size.width);
+    CGFloat maxHeight = MAX(1, self.bounds.size.height - label.bounds.size.height);
     
-    return CGRectMake(random() % (NSInteger)maxWidth, random() % (NSInteger)maxHeight,
+    return CGRectMake(arc4random() % (NSInteger)maxWidth, arc4random() % (NSInteger)maxHeight,
                       CGRectGetWidth(label.bounds), CGRectGetHeight(label.bounds));
 }
 
@@ -77,6 +79,10 @@
 }
 
 - (void)generate {
+	[self _generateWithTries:0];
+}
+
+- (void)_generateWithTries:(NSUInteger)numberOfGenerationPasses {
     [self.labels makeObjectsPerformSelector:@selector(removeFromSuperview)];
     [self.labels removeAllObjects];
     
@@ -88,11 +94,31 @@
         label.tag = i++;
         label.text = title;
         label.textColor = [self randomColor];
-        label.font = [self randomFont];
         
+		NSUInteger numberOfTriesForLabel = 0;
+		BOOL foundMatchingFrame;
         do {
+			label.font = [self randomFont:numberOfTriesForLabel];
             label.frame = [self randomFrameForLabel:label];
-        } while ([self frameIntersects:label.frame]);
+			++numberOfTriesForLabel;
+			
+			if (numberOfTriesForLabel > 50) {
+				
+				if (numberOfGenerationPasses > 10) {
+					NSLog(@"Could not find suitable cloud. Aborting");
+					return;
+				}
+				
+				NSLog(@"Could not find suitable cloud. Trying again");
+				[self _generateWithTries:numberOfGenerationPasses + 1];
+				return;
+			}
+			
+			CGRect labelFrame = label.frame;
+			BOOL frameIntersectsOtherLabel = [self frameIntersects:labelFrame];
+			BOOL frameFitsInView = CGRectContainsRect(self.bounds, labelFrame);
+			foundMatchingFrame = (frameIntersectsOtherLabel == NO && frameFitsInView);
+        } while (foundMatchingFrame == NO);
         
         [self.labels addObject:label];
         [self addSubview:label];
