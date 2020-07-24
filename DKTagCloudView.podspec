@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = "DKTagCloudView"
-  s.version      = "1.0.0"
+  s.version      = "1.0.1"
   s.summary      = "A tag clouds view on iOS.t can generate a random and not intersects coordinates."
   s.homepage     = "https://github.com/zhangao0086/DKTagCloudView"
   s.license      = { :type => "MIT", :file => "LICENSE" }
